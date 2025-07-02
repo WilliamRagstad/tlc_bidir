@@ -9,6 +9,7 @@ e ::= X       // variable
     | λX. e   // abstraction
     | e e     // application
     | X = e   // binding
+	| V       // value
 
 V ::= n       // natural number
 	| true    // boolean true
