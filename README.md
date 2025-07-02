@@ -5,11 +5,13 @@ This is a fork of the [lambda_calc](https://github.com/WilliamRagstad/lambda_cal
 The extended grammar:
 
 ```go
+x ::= v       // variable
+    | v : T   // variable with type annotation
+
 e ::= x       // variable
     | λx. e   // abstraction
     | e e     // application
     | x = e   // binding
-	| (e : T) // type annotation
 	| n       // natural number
 	| true    // boolean true
 	| false   // boolean false
