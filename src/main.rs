@@ -29,6 +29,9 @@ fn main() {
         }
         false
     });
+    if args.contains(&"--expr".into()) || args.contains(&"-e".into()) {
+        expr(&args, verbose);
+    }
     if args.len() == 2 {
         eval_prog(
             std::fs::read_to_string(&args[1]).unwrap(),
@@ -120,5 +123,16 @@ fn help() -> ! {
     println!("  [file]         File to read lambda calculus program from");
     println!();
     println!("If no file is given, the program will run in REPL mode");
+    std::process::exit(0);
+}
+
+fn expr(args: &[String], verbose: bool) -> ! {
+    if args.len() < 3 {
+        eprintln!("Usage: lambda --expr <expression>");
+        std::process::exit(1);
+    }
+    let expr = args[2..].join(" ");
+    let mut env = HashMap::new();
+    eval_prog(expr, &mut env, verbose, PRINT_OUT);
     std::process::exit(0);
 }
