@@ -3,7 +3,16 @@ COMMENT    = _{ "--" ~ (!"\n" ~ ANY)* ~ "\n" }
 program    = _{ SOI ~ ((assignment | application | term) ~ ";"?)* ~ EOI }
 assignment =  { variable ~ "=" ~ (application | term) }
 // Lambda calculus
-term        = _{ abstraction | "(" ~ application ~ ")" | variable | "(" ~ term ~ ")" }
-abstraction =  { ("\\" | "λ") ~ variable ~ "." ~ term }
-application =  { term ~ term+ }
-variable    = @{ ASCII_ALPHANUMERIC+ ~ "'"* }
+term             = _{ abstraction | "(" ~ application ~ ")" | nat | bool | no_type_variable | "(" ~ term ~ ")" }
+abstraction      =  { ("\\" | "λ") ~ variable ~ "." ~ term }
+application      =  { term ~ term+ }
+variable         =  { typed_variable | no_type_variable }
+no_type_variable = @{ ASCII_ALPHA+ ~ "'"* }
+typed_variable   = _{ no_type_variable ~ ":" ~ type_expression }
+// Values
+nat  = @{ ASCII_DIGIT+ }
+bool = @{ "true" | "false" }
+// Type annotations
+type_expression = _{ base_type | app_type }
+app_type        =  { base_type ~ "->" ~ type_expression }
+base_type       = @{ "Nat" | "Bool" }

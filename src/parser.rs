@@ -9,7 +9,7 @@ pub struct LambdaCalcParser;
 /// AST for our extended lambda calculus program
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    Assignment(String, Term),
+    Assignment(Term, Term),
     Term(Term),
 }
 
@@ -21,9 +21,19 @@ pub type Program = Vec<Expr>;
 /// See https://en.wikipedia.org/wiki/Lambda_calculus#Definition.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Term {
-    Variable(String),
     Abstraction(String, Box<Term>),
     Application(Box<Term>, Box<Term>),
+    Variable(String, Option<TypeTerm>), // Variable with optional type annotation
+    Nat(u32),                           // Natural number
+    Bool(bool),                         // Boolean value
+}
+
+/// Type system for lambda calculus
+#[derive(Debug, Clone, PartialEq)]
+pub enum TypeTerm {
+    Nat,
+    Bool,
+    Abstraction(Box<TypeTerm>, Box<TypeTerm>),
 }
 
 /// Parse a top-level program into a list of terms
@@ -31,7 +41,6 @@ pub fn parse_prog(input: &str) -> Program {
     /// Transform a Pest pair into our own AST Expr node format
     fn parse_term(pair: Pair<Rule>) -> Term {
         match pair.as_rule() {
-            Rule::variable => Term::Variable(pair.as_str().to_string()),
             Rule::abstraction => {
                 let mut inner = pair.into_inner();
                 let param = inner.next().unwrap().as_str().to_string();
@@ -55,6 +64,38 @@ pub fn parse_prog(input: &str) -> Program {
                 }
                 lhs
             }
+            Rule::variable => {
+                let mut inner = pair.into_inner();
+                let var_name = inner.next().unwrap().as_str().to_string();
+                let type_annotation = inner.next().map(parse_type);
+                Term::Variable(var_name, type_annotation)
+                // Term::Variable(pair.as_str().to_string())
+            }
+            Rule::nat => {
+                let nat_str = pair.as_str();
+                Term::Nat(nat_str.parse().unwrap())
+            }
+            Rule::bool => {
+                let bool_str = pair.as_str();
+                Term::Bool(bool_str == "true")
+            }
+            r => unreachable!("Rule {:?} not expected", r),
+        }
+    }
+
+    fn parse_type(pair: Pair<Rule>) -> TypeTerm {
+        match pair.as_rule() {
+            Rule::base_type => match pair.as_str() {
+                "Nat" => TypeTerm::Nat,
+                "Bool" => TypeTerm::Bool,
+                _ => unreachable!("Unexpected base type"),
+            },
+            Rule::app_type => {
+                let mut inner = pair.into_inner();
+                let base = parse_type(inner.next().unwrap());
+                let next = parse_type(inner.next().unwrap());
+                TypeTerm::Abstraction(Box::new(base), Box::new(next))
+            }
             r => unreachable!("Rule {:?} not expected", r),
         }
     }
@@ -72,7 +113,7 @@ pub fn parse_prog(input: &str) -> Program {
             Rule::EOI => break,
             Rule::assignment => {
                 let mut inner = pair.into_inner();
-                let name = inner.next().unwrap().as_str().to_string();
+                let name = parse_term(inner.next().unwrap());
                 let term = parse_term(inner.next().unwrap());
                 prog.push(Expr::Assignment(name, term));
             }

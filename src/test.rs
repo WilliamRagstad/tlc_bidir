@@ -24,17 +24,20 @@ mod tests {
         assert_eq!(
             &terms,
             &[
-                Expr::Assignment("x".to_string(), Term::Variable("y".to_string())),
+                Expr::Assignment(
+                    Term::Variable("x".to_string(), None),
+                    Term::Variable("y".to_string(), None)
+                ),
                 Expr::Term(Term::Abstraction(
                     "x".to_string(),
                     Box::new(Term::Application(
-                        Box::new(Term::Variable("x".to_string())),
-                        Box::new(Term::Variable("y".to_string()))
+                        Box::new(Term::Variable("x".to_string(), None)),
+                        Box::new(Term::Variable("y".to_string(), None))
                     ))
                 )),
                 Expr::Term(Term::Application(
-                    Box::new(Term::Variable("x".to_string())),
-                    Box::new(Term::Variable("y".to_string()))
+                    Box::new(Term::Variable("x".to_string(), None)),
+                    Box::new(Term::Variable("y".to_string(), None))
                 ))
             ]
         );
@@ -54,10 +57,10 @@ mod tests {
                         "z".to_string(),
                         Box::new(Term::Application(
                             Box::new(Term::Application(
-                                Box::new(Term::Variable("x".to_string())),
-                                Box::new(Term::Variable("y".to_string()))
+                                Box::new(Term::Variable("x".to_string(), None)),
+                                Box::new(Term::Variable("y".to_string(), None))
                             )),
-                            Box::new(Term::Variable("z".to_string()))
+                            Box::new(Term::Variable("z".to_string(), None))
                         ))
                     ))
                 ))
@@ -76,8 +79,8 @@ mod tests {
         assert_eq!(
             result,
             Term::Application(
-                Box::new(Term::Variable("y".to_string())),
-                Box::new(Term::Variable("y".to_string()))
+                Box::new(Term::Variable("y".to_string(), None)),
+                Box::new(Term::Variable("y".to_string(), None))
             )
         );
     }

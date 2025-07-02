@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::Term;
+use crate::{parser::TypeTerm, Term};
 
 const DARK_GRAY: &str = "\x1b[90m";
 const YELLOW: &str = "\x1b[33m";
@@ -43,7 +43,6 @@ pub fn var(v: &str) -> String {
 /// Pretty print a term
 pub fn term(t: &Term) -> String {
     match t {
-        Term::Variable(v) => var(v),
         Term::Abstraction(param, body) => {
             let body = term(body);
             format!("{YELLOW}λ{RESET}{}{DARK_GRAY}.{RESET}{}", var(param), body)
@@ -53,9 +52,26 @@ pub fn term(t: &Term) -> String {
             term(f),
             term(x)
         ),
+        Term::Variable(v, t) => {
+            if let Some(t) = t {
+                format!("{} {DARK_GRAY}:{RESET} {}", var(v), ty(t))
+            } else {
+                var(v)
+            }
+        }
+        Term::Nat(n) => format!("{GREEN}{}{RESET}", n),
+        Term::Bool(b) => format!("{CYAN}{}{RESET}", if *b { "true" } else { "false" }),
     }
 }
 
-pub fn assign(name: &str, t: &Term) -> String {
-    format!("{} = {}{DARK_GRAY};{RESET}", var(name), term(t))
+pub fn assign(target: &Term, body: &Term) -> String {
+    format!("{} = {}{DARK_GRAY};{RESET}", term(target), term(body))
+}
+
+pub fn ty(t: &TypeTerm) -> String {
+    match t {
+        TypeTerm::Nat => format!("{YELLOW}Nat{RESET}"),
+        TypeTerm::Bool => format!("{YELLOW}Bool{RESET}"),
+        TypeTerm::Abstraction(t1, t2) => format!("{} {DARK_GRAY}->{RESET} {}", ty(t1), ty(t2)),
+    }
 }

@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    parser::{parse_prog, Expr, Program, Term},
+    parser::{parse_prog, Expr, Program, Term, TypeTerm},
     print,
 };
 
@@ -17,10 +17,6 @@ type Env = HashMap<String, Term>;
 /// See https://en.wikipedia.org/wiki/Lambda_calculus#Substitution.
 pub fn substitute(term: &Term, var: &str, value: &Term) -> Term {
     match term {
-        // var[var := value] = value
-        Term::Variable(v) if v == var => value.clone(),
-        // x[var := value] = x   (x != var)
-        Term::Variable(_) => term.clone(),
         // (e1 e2)[var := value] = (e1[var := value]) (e2[var := value])
         Term::Application(e1, e2) => Term::Application(
             Box::new(substitute(e1, var, value)),
@@ -43,6 +39,13 @@ pub fn substitute(term: &Term, var: &str, value: &Term) -> Term {
             // Substitute inside the abstraction's body
             Term::Abstraction(s.clone(), Box::new(substitute(body, var, value)))
         }
+        // var[var := value] = value
+        Term::Variable(v, _) if v == var => value.clone(),
+        // x[var := value] = x   (x != var)
+        Term::Variable(_, _) => term.clone(),
+        // Nat and Bool are not affected by substitution
+        Term::Nat(n) => Term::Nat(*n),
+        Term::Bool(b) => Term::Bool(*b),
     }
 }
 
@@ -51,12 +54,6 @@ pub fn substitute(term: &Term, var: &str, value: &Term) -> Term {
 /// See https://en.wikipedia.org/wiki/Lambda_calculus#Free_and_bound_variables.
 pub fn free_vars(term: &Term) -> HashSet<String> {
     match term {
-        // free_vars(x) = {x}
-        Term::Variable(s) => {
-            let mut set = HashSet::new();
-            set.insert(s.clone());
-            set
-        }
         // free_vars(λx. e) = free_vars(e) - {x}
         Term::Abstraction(s, body) => {
             let mut set = free_vars(body);
@@ -69,14 +66,22 @@ pub fn free_vars(term: &Term) -> HashSet<String> {
             set.extend(free_vars(e2));
             set
         }
+        // free_vars(x) = {x}
+        Term::Variable(s, _) => {
+            let mut set = HashSet::new();
+            set.insert(s.clone());
+            set
+        }
+        // free_vars(n) = {}
+        Term::Nat(_) => HashSet::new(),
+        // free_vars(b) = {}
+        Term::Bool(_) => HashSet::new(),
     }
 }
 
 // Rename a variable in a term
 pub fn rename_var(term: &Term, old_var: &str, new_var: &str) -> Term {
     match term {
-        Term::Variable(s) if s == old_var => Term::Variable(new_var.to_string()),
-        Term::Variable(_) => term.clone(),
         Term::Abstraction(s, body) if s == old_var => Term::Abstraction(
             new_var.to_string(),
             Box::new(rename_var(body, old_var, new_var)),
@@ -89,22 +94,25 @@ pub fn rename_var(term: &Term, old_var: &str, new_var: &str) -> Term {
             Box::new(rename_var(e1, old_var, new_var)),
             Box::new(rename_var(e2, old_var, new_var)),
         ),
+        Term::Variable(s, t) if s == old_var => Term::Variable(new_var.to_string(), t.clone()),
+        Term::Variable(_, _) => term.clone(),
+        Term::Nat(n) => Term::Nat(*n),
+        Term::Bool(b) => Term::Bool(*b),
     }
 }
 
 // Perform β-reduction on a lambda calculus term
 pub fn beta_reduce(term: &Term, env: &Env, mut bound_vars: HashSet<String>) -> Term {
     match term {
-        Term::Variable(_) => term.clone(),
         Term::Abstraction(var, body) => {
             bound_vars.insert(var.clone());
             Term::Abstraction(var.clone(), Box::new(beta_reduce(body, env, bound_vars)))
         }
         Term::Application(e1, e2) => {
             // Only when application is reduced, lookup env variables and substitute
-            let e1 = if let Term::Variable(v) = e1.borrow() {
-                if !bound_vars.contains(v) {
-                    env_var(v, env)
+            let e1 = if let Term::Variable(var, ty) = e1.borrow() {
+                if !bound_vars.contains(var) {
+                    env_var(var, ty, env)
                 } else {
                     *e1.clone()
                 }
@@ -120,6 +128,9 @@ pub fn beta_reduce(term: &Term, env: &Env, mut bound_vars: HashSet<String>) -> T
                 )
             }
         }
+        Term::Variable(_, _) => term.clone(),
+        Term::Nat(n) => Term::Nat(*n),
+        Term::Bool(b) => Term::Bool(*b),
     }
 }
 
@@ -143,11 +154,11 @@ pub fn reduce_to_normal_form(term: &Term, env: &Env, verbose: bool, printer: Pri
 }
 
 /// Inline a free variable in env into a term
-pub fn env_var(var: &str, env: &Env) -> Term {
+pub fn env_var(var: &str, ty: &Option<TypeTerm>, env: &Env) -> Term {
     if let Some(expr) = env.get(var) {
         // If the variable is in the environment, loop until it is not a variable
         let mut expr = expr.clone();
-        while let Term::Variable(v) = &expr {
+        while let Term::Variable(v, _) = &expr {
             if let Some(new_expr) = env.get(v) {
                 expr = new_expr.clone();
             } else {
@@ -156,19 +167,21 @@ pub fn env_var(var: &str, env: &Env) -> Term {
         }
         return expr;
     }
-    Term::Variable(var.to_string())
+    Term::Variable(var.to_string(), ty.clone())
 }
 
 /// Inline variables in a term using the given environment
 pub fn inline_vars(term: &Term, env: &Env) -> Term {
     match &term {
-        Term::Variable(v) => env_var(v, env),
         Term::Abstraction(param, body) => {
             Term::Abstraction(param.clone(), Box::new(inline_vars(body, env)))
         }
         Term::Application(f, x) => {
             Term::Application(Box::new(inline_vars(f, env)), Box::new(inline_vars(x, env)))
         }
+        Term::Variable(var, ty) => env_var(var, ty, env),
+        Term::Nat(n) => Term::Nat(*n),
+        Term::Bool(b) => Term::Bool(*b),
     }
 }
 
@@ -178,9 +191,13 @@ pub fn eval_expr(expr: &Expr, env: &mut Env, verbose: bool, printer: PrinterFn) 
             if verbose {
                 printer(print::assign(name, val));
             }
+            let name = match name {
+                Term::Variable(v, _) => v.clone(),
+                _ => panic!("Assignment target must be a variable"),
+            };
             // Explicitly DON'T apply beta reduction here!
             // We want recursive combinators to not be evaluated until they are used
-            env.insert(name.clone(), val.clone());
+            env.insert(name, val.clone());
             val.clone()
         }
         Expr::Term(term) => {
