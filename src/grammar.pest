@@ -15,4 +15,4 @@ bool = @{ "true" | "false" }
 // Type annotations
 type_expression = _{ app_type | base_type }
 app_type        =  { base_type ~ "->" ~ type_expression }
-base_type       = @{ "Nat" | "Bool" }
+base_type       = @{ ASCII_ALPHA+ }

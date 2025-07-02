@@ -16,9 +16,8 @@ e ::= X       // variable
 X ::= v       // variable
     | v : T   // variable with type annotation
 
-T ::= Bool    // boolean type
-	| Nat     // natural number type
-	| T -> T  // function type
+T ::= t       // named type
+	| T -> T  // application type
 ```
 
 ## See [lambda_calc](https://github.com/WilliamRagstad/lambda_calc) for usage reference

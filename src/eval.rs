@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    parser::{parse_prog, Expr, Program, Term, TypeTerm},
+    parser::{parse_prog, Expr, Program, Term, Type},
     print,
 };
 
@@ -154,7 +154,7 @@ pub fn reduce_to_normal_form(term: &Term, env: &Env, verbose: bool, printer: Pri
 }
 
 /// Inline a free variable in env into a term
-pub fn env_var(var: &str, ty: &Option<TypeTerm>, env: &Env) -> Term {
+pub fn env_var(var: &str, ty: &Option<Type>, env: &Env) -> Term {
     if let Some(expr) = env.get(var) {
         // If the variable is in the environment, loop until it is not a variable
         let mut expr = expr.clone();

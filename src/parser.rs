@@ -23,17 +23,16 @@ pub type Program = Vec<Expr>;
 pub enum Term {
     Abstraction(String, Box<Term>),
     Application(Box<Term>, Box<Term>),
-    Variable(String, Option<TypeTerm>), // Variable with optional type annotation
-    Nat(u32),                           // Natural number
-    Bool(bool),                         // Boolean value
+    Variable(String, Option<Type>), // Variable with optional type annotation
+    Nat(u32),                       // Natural number
+    Bool(bool),                     // Boolean value
 }
 
 /// Type system for lambda calculus
 #[derive(Debug, Clone, PartialEq)]
-pub enum TypeTerm {
-    Nat,
-    Bool,
-    Abstraction(Box<TypeTerm>, Box<TypeTerm>),
+pub enum Type {
+    Variable(String), // Type variable
+    Abstraction(Box<Type>, Box<Type>),
 }
 
 /// Parse a top-level program into a list of terms
@@ -82,18 +81,14 @@ pub fn parse_prog(input: &str) -> Program {
         }
     }
 
-    fn parse_type(pair: Pair<Rule>) -> TypeTerm {
+    fn parse_type(pair: Pair<Rule>) -> Type {
         match pair.as_rule() {
-            Rule::base_type => match pair.as_str() {
-                "Nat" => TypeTerm::Nat,
-                "Bool" => TypeTerm::Bool,
-                _ => unreachable!("Unexpected base type"),
-            },
+            Rule::base_type => Type::Variable(pair.as_str().to_string()),
             Rule::app_type => {
                 let mut inner = pair.into_inner();
                 let base = parse_type(inner.next().unwrap());
                 let next = parse_type(inner.next().unwrap());
-                TypeTerm::Abstraction(Box::new(base), Box::new(next))
+                Type::Abstraction(Box::new(base), Box::new(next))
             }
             r => unreachable!("Rule {:?} not expected", r),
         }

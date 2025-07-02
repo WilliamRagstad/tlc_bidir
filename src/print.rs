@@ -1,12 +1,13 @@
 use std::io::Write;
 
-use crate::{parser::TypeTerm, Term};
+use crate::{parser::Type, Term};
 
 const DARK_GRAY: &str = "\x1b[90m";
 const YELLOW: &str = "\x1b[33m";
 const CYAN: &str = "\x1b[36m";
 const GREEN: &str = "\x1b[32m";
 const PINK: &str = "\x1b[35m";
+const PURPLE: &str = "\x1b[95m";
 const ITALIC: &str = "\x1b[3m";
 const RESET: &str = "\x1b[0m";
 
@@ -68,10 +69,9 @@ pub fn assign(target: &Term, body: &Term) -> String {
     format!("{} = {}{DARK_GRAY};{RESET}", term(target), term(body))
 }
 
-pub fn ty(t: &TypeTerm) -> String {
+pub fn ty(t: &Type) -> String {
     match t {
-        TypeTerm::Nat => format!("{YELLOW}Nat{RESET}"),
-        TypeTerm::Bool => format!("{YELLOW}Bool{RESET}"),
-        TypeTerm::Abstraction(t1, t2) => format!("{} {DARK_GRAY}->{RESET} {}", ty(t1), ty(t2)),
+        Type::Variable(name) => format!("{PURPLE}{}{RESET}", name),
+        Type::Abstraction(t1, t2) => format!("{} {DARK_GRAY}->{RESET} {}", ty(t1), ty(t2)),
     }
 }
