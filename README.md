@@ -1,7 +1,6 @@
 # Typed Lambda Calculus with Bidirectional Checking
 
-This is a fork of the [lambda_calc](https://github.com/WilliamRagstad/lambda_calc) repository, which implements a simple interpreter for the untyped [lambda calculus](https://en.wikipedia.org/wiki/Lambda_calculus) in Rust.
-This version extends the original implementation with **bidirectional type checking**, type annotations, natural numbers and booleans!
+This is a fork of the [lambda_calc](https://github.com/WilliamRagstad/lambda_calc) repository, extending with **bidirectional type checking**, type annotations, natural numbers and booleans!
 
 The extended grammar:
 
