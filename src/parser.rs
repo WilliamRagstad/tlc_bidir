@@ -69,7 +69,6 @@ pub fn parse_prog(input: &str) -> Program {
                 let var_name = inner.next().unwrap().as_str().to_string();
                 let type_annotation = inner.next().map(parse_type);
                 Term::Variable(var_name, type_annotation)
-                // Term::Variable(pair.as_str().to_string())
             }
             Rule::nat => {
                 let nat_str = pair.as_str();

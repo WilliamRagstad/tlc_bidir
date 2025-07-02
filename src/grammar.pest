@@ -13,6 +13,6 @@ typed_variable   = _{ no_type_variable ~ ":" ~ type_expression }
 nat  = @{ ASCII_DIGIT+ }
 bool = @{ "true" | "false" }
 // Type annotations
-type_expression = _{ base_type | app_type }
+type_expression = _{ app_type | base_type }
 app_type        =  { base_type ~ "->" ~ type_expression }
 base_type       = @{ "Nat" | "Bool" }
