@@ -2,6 +2,7 @@ WHITESPACE = _{ " " | "\t" | "\n" }
 COMMENT    = _{ "--" ~ (!"\n" ~ ANY)* ~ "\n" }
 program    = _{ SOI ~ ((assignment | application | term) ~ ";"?)* ~ EOI }
 assignment =  { variable ~ "=" ~ (application | term) }
+
 // Lambda calculus
 term             = _{ abstraction | "(" ~ application ~ ")" | value | no_type_variable | "(" ~ term ~ ")" }
 abstraction      =  { ("\\" | "λ") ~ variable ~ "." ~ term }
@@ -9,10 +10,12 @@ application      =  { term ~ term+ }
 variable         =  { typed_variable | no_type_variable }
 no_type_variable = @{ ASCII_ALPHA+ ~ "'"* }
 typed_variable   = _{ no_type_variable ~ ":" ~ type_expression }
+
 // Values
 value = _{ nat | bool }
 nat   = @{ ASCII_DIGIT+ }
 bool  = @{ "true" | "false" }
+
 // Type annotations
 type_expression = _{ app_type | base_type }
 app_type        =  { base_type ~ "->" ~ type_expression }
