@@ -6,7 +6,7 @@ The extended grammar:
 
 ```go
 x ::= v       // variable
-    | v : T   // variable with type annotation
+    | v : t   // variable with type annotation
 
 e ::= x       // variable
     | λx. e   // abstraction
@@ -16,9 +16,9 @@ e ::= x       // variable
 	| true    // boolean true
 	| false   // boolean false
 
-T ::= Bool    // boolean type
+t ::= Bool    // boolean type
 	| Nat     // natural number type
-	| T -> T  // function type
+	| t -> t  // function type
 ```
 
 ## See [lambda_calc](https://github.com/WilliamRagstad/lambda_calc) for usage reference
