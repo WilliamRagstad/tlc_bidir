@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-
 mod eval;
 mod parser;
 mod print;
 mod test;
+mod types;
 
-use eval::{eval_prog, PrinterFn};
+use eval::{eval_prog, Env, PrinterFn};
 use parser::Term;
 
 pub const PRINT_NONE: PrinterFn = |_| {};
@@ -16,7 +15,7 @@ pub const PRINT_DBG: PrinterFn = |t| {
 };
 
 fn main() {
-    let mut env = HashMap::new();
+    let mut env = Env::new();
     // If one argument is given, read that file, otherwise run REPL
     let mut args: Vec<String> = std::env::args().collect();
     // Remove --verbose flag if present
@@ -31,8 +30,7 @@ fn main() {
     });
     if args.contains(&"--expr".into()) || args.contains(&"-e".into()) {
         expr(&args, verbose);
-    }
-    if args.len() == 2 {
+    } else if args.len() == 2 {
         eval_prog(
             std::fs::read_to_string(&args[1]).unwrap(),
             &mut env,
@@ -126,13 +124,12 @@ fn help() -> ! {
     std::process::exit(0);
 }
 
-fn expr(args: &[String], verbose: bool) -> ! {
+fn expr(args: &[String], verbose: bool) {
     if args.len() < 3 {
         eprintln!("Usage: lambda --expr <expression>");
-        std::process::exit(1);
+        return;
     }
     let expr = args[2..].join(" ");
-    let mut env = HashMap::new();
+    let mut env = Env::new();
     eval_prog(expr, &mut env, verbose, PRINT_OUT);
-    std::process::exit(0);
 }

@@ -6,10 +6,11 @@ use std::{
 use crate::{
     parser::{parse_prog, Expr, Program, Term, Type},
     print,
+    types::{self, Ctx},
 };
 
 /// Environment mapping variable names to terms
-type Env = HashMap<String, Term>;
+pub type Env = HashMap<String, Term>;
 
 /// Substitute a variable in a term with another term
 /// This is used in β-reduction.
@@ -213,6 +214,8 @@ pub fn eval_expr(expr: &Expr, env: &mut Env, verbose: bool, printer: PrinterFn) 
 /// Run the given input program in the given environment
 pub fn eval_prog(input: String, env: &mut Env, verbose: bool, printer: PrinterFn) {
     let terms: Program = parse_prog(input.replace("\r", "").trim());
+    let mut ctx = Ctx::new();
+    types::check_program(&mut ctx, &terms).unwrap();
     for (i, expr) in terms.iter().enumerate() {
         let term = eval_expr(expr, env, verbose, printer);
         if matches!(expr, Expr::Assignment(_, _)) {

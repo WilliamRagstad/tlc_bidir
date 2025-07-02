@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
@@ -32,8 +34,11 @@ pub enum Term {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
     Variable(String), // Type variable
-    Abstraction(Box<Type>, Box<Type>),
+    Abstraction(Rc<Type>, Rc<Type>),
 }
+
+pub const Nat: &str = "Nat";
+pub const Bool: &str = "Bool";
 
 /// Parse a top-level program into a list of terms
 pub fn parse_prog(input: &str) -> Program {
@@ -88,7 +93,7 @@ pub fn parse_prog(input: &str) -> Program {
                 let mut inner = pair.into_inner();
                 let base = parse_type(inner.next().unwrap());
                 let next = parse_type(inner.next().unwrap());
-                Type::Abstraction(Box::new(base), Box::new(next))
+                Type::Abstraction(Rc::new(base), Rc::new(next))
             }
             r => unreachable!("Rule {:?} not expected", r),
         }
