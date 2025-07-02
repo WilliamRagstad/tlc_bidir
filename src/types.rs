@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::parser::{Bool, Expr, Nat, Program, Term, Type};
+use crate::parser::{Expr, Program, Term, Type};
 
 pub type Ctx = HashMap<String, Rc<Type>>;
 
@@ -50,18 +50,32 @@ fn check_bind(
     if let Some(expected_ty) = expected {
         if let Some(existing_ty) = ctx.get(target) {
             if *expected_ty != **existing_ty {
-                return Err(TypeError::Mismatch {
+                Err(TypeError::Mismatch {
                     expected: (*expected_ty).clone(),
                     found: (**existing_ty).clone(),
-                });
+                })
+            } else {
+                Ok(Rc::new(expected_ty.clone()))
             }
         } else {
             // If not bound, insert the expected type
             ctx.insert(target.to_string(), Rc::new(expected_ty.clone()));
+            // Now check the body against the expected type
+            let inferred = infer_term(ctx, body)?;
+            if *expected_ty != *inferred {
+                return Err(TypeError::Mismatch {
+                    expected: (*expected_ty).clone(),
+                    found: (*inferred).clone(),
+                });
+            }
+            Ok(Rc::new(expected_ty.clone()))
         }
+    } else {
+        let inferred = infer_term(ctx, body)?;
+        ctx.insert(target.to_string(), inferred.clone());
+        // If no expected type, just return the inferred type
+        Ok(inferred)
     }
-    // Infer the body with the updated context
-    infer_term(ctx, body)
 }
 
 /// Checking: Γ ⊢ e ⇐ T   (returns () on success)
@@ -105,8 +119,8 @@ fn infer_term(ctx: &mut Ctx, e: &Term) -> Result<Rc<Type>, TypeError> {
             }
             ctx.get(x).cloned().ok_or(TypeError::Unbound(x.clone()))
         }
-        Term::Nat(_) => Ok(Rc::new(Type::Variable(Nat.to_string()))),
-        Term::Bool(_) => Ok(Rc::new(Type::Variable(Bool.to_string()))),
+        Term::Nat(_) => Ok(Rc::new(Type::Variable("Nat".to_string()))),
+        Term::Bool(_) => Ok(Rc::new(Type::Variable("Bool".to_string()))),
         Term::Abstraction(param, body) => {
             let param_ty = Rc::new(Type::Variable(param.to_string()));
             ctx.insert(param.clone(), param_ty.clone());

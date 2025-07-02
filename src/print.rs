@@ -1,7 +1,8 @@
 use std::io::Write;
 
-use crate::{parser::Type, Term};
+use crate::{parser::Type, types::TypeError, Term};
 
+const RED: &str = "\x1b[31m";
 const DARK_GRAY: &str = "\x1b[90m";
 const YELLOW: &str = "\x1b[33m";
 const CYAN: &str = "\x1b[36m";
@@ -74,4 +75,36 @@ pub fn ty(t: &Type) -> String {
         Type::Variable(name) => format!("{PURPLE}{}{RESET}", name),
         Type::Abstraction(t1, t2) => format!("{} {DARK_GRAY}->{RESET} {}", ty(t1), ty(t2)),
     }
+}
+
+pub fn ty_err(err: TypeError) -> String {
+    let type_error = format!("{RED}Type error{RESET}");
+    match err {
+        TypeError::Mismatch { expected, found } => {
+            format!(
+                "{type_error}: expected {} but found {}",
+                ty(&expected),
+                ty(&found)
+            )
+        }
+        TypeError::NotAFunction(t) => {
+            format!("{type_error}: {} is not a function type", ty(&t))
+        }
+        TypeError::Unbound(name) => {
+            format!("{type_error}: unbound variable `{}`", var(&name))
+        }
+    }
+}
+
+pub fn ctx(ctx: &crate::types::Ctx) -> String {
+    let mut ctx_str = "Γ = {\n".to_string();
+    for (name, t) in ctx.iter() {
+        ctx_str.push_str(&format!(
+            "  {} {DARK_GRAY}:{RESET} {}{DARK_GRAY},{RESET}\n",
+            var(name),
+            ty(t)
+        ));
+    }
+    ctx_str.push('}');
+    ctx_str
 }

@@ -37,9 +37,6 @@ pub enum Type {
     Abstraction(Rc<Type>, Rc<Type>),
 }
 
-pub const Nat: &str = "Nat";
-pub const Bool: &str = "Bool";
-
 /// Parse a top-level program into a list of terms
 pub fn parse_prog(input: &str) -> Program {
     /// Transform a Pest pair into our own AST Expr node format

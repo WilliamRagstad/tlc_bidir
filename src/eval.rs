@@ -215,7 +215,13 @@ pub fn eval_expr(expr: &Expr, env: &mut Env, verbose: bool, printer: PrinterFn) 
 pub fn eval_prog(input: String, env: &mut Env, verbose: bool, printer: PrinterFn) {
     let terms: Program = parse_prog(input.replace("\r", "").trim());
     let mut ctx = Ctx::new();
-    types::check_program(&mut ctx, &terms).unwrap();
+    if let Err(err) = types::check_program(&mut ctx, &terms) {
+        printer(print::ty_err(err));
+        return;
+    }
+    if verbose {
+        printer(print::ctx(&ctx));
+    }
     for (i, expr) in terms.iter().enumerate() {
         let term = eval_expr(expr, env, verbose, printer);
         if matches!(expr, Expr::Assignment(_, _)) {
