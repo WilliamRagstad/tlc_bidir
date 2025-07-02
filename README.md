@@ -5,20 +5,20 @@ This is a fork of the [lambda_calc](https://github.com/WilliamRagstad/lambda_cal
 The extended grammar:
 
 ```go
-x ::= v       // variable
-    | v : τ   // variable with type annotation
-
-e ::= x       // variable
-    | λx. e   // abstraction
+e ::= X       // variable
+    | λX. e   // abstraction
     | e e     // application
-    | x = e   // binding
+    | X = e   // binding
 	| n       // natural number
 	| true    // boolean true
 	| false   // boolean false
 
-τ ::= Bool    // boolean type
+X ::= v       // variable
+    | v : T   // variable with type annotation
+
+T ::= Bool    // boolean type
 	| Nat     // natural number type
-	| τ -> τ  // function type
+	| T -> T  // function type
 ```
 
 ## See [lambda_calc](https://github.com/WilliamRagstad/lambda_calc) for usage reference
