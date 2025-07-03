@@ -49,9 +49,6 @@ pub fn substitute(term: &Term, var: &str, value: &Term) -> Term {
         Term::Variable(v, _, _) if v == var => value.clone(),
         // x[var := value] = x   (x != var)
         Term::Variable(_, _, _) => term.clone(),
-        // Nat and Bool are not affected by substitution
-        Term::Nat(n, info) => Term::Nat(*n, info.clone()),
-        Term::Bool(b, info) => Term::Bool(*b, info.clone()),
     }
 }
 
@@ -78,10 +75,6 @@ pub fn free_vars(term: &Term) -> HashSet<String> {
             set.insert(s.clone());
             set
         }
-        // free_vars(n) = {}
-        Term::Nat(_, _) => HashSet::new(),
-        // free_vars(b) = {}
-        Term::Bool(_, _) => HashSet::new(),
     }
 }
 
@@ -108,8 +101,6 @@ pub fn rename_var(term: &Term, old_var: &str, new_var: &str) -> Term {
             Term::Variable(new_var.to_string(), t.clone(), info.clone())
         }
         Term::Variable(_, _, _) => term.clone(),
-        Term::Nat(n, info) => Term::Nat(*n, info.clone()),
-        Term::Bool(b, info) => Term::Bool(*b, info.clone()),
     }
 }
 
@@ -146,8 +137,6 @@ pub fn beta_reduce(term: &Term, env: &Env, mut bound_vars: HashSet<String>) -> T
             }
         }
         Term::Variable(_, _, _) => term.clone(),
-        Term::Nat(n, info) => Term::Nat(*n, info.clone()),
-        Term::Bool(b, info) => Term::Bool(*b, info.clone()),
     }
 }
 
@@ -201,8 +190,6 @@ pub fn inline_vars(term: &Term, env: &Env) -> Term {
             info.clone(),
         ),
         Term::Variable(var, ty, info) => env_var(var, ty, env, info),
-        Term::Nat(n, info) => Term::Nat(*n, info.clone()),
-        Term::Bool(b, info) => Term::Bool(*b, info.clone()),
     }
 }
 

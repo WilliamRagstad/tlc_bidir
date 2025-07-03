@@ -61,8 +61,6 @@ pub fn term(t: &Term) -> String {
                 var(v)
             }
         }
-        Term::Nat(n, _) => format!("{GREEN}{}{RESET}", n),
-        Term::Bool(b, _) => format!("{CYAN}{}{RESET}", if *b { "true" } else { "false" }),
     }
 }
 

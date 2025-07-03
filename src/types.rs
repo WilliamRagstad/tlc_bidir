@@ -129,8 +129,6 @@ fn infer_term(ctx: &mut Ctx, e: &Term) -> Result<Rc<Type>, TypeError> {
                 .cloned()
                 .ok_or(TypeError::Unbound(x.clone(), e.info().clone()))
         }
-        Term::Nat(_, _) => Ok(Rc::new(Type::Variable("Nat".to_string()))),
-        Term::Bool(_, _) => Ok(Rc::new(Type::Variable("Bool".to_string()))),
         Term::Abstraction(param, body, _) => {
             let param_ty = Rc::new(Type::Variable(param.to_string()));
             ctx.insert(param.clone(), param_ty.clone());

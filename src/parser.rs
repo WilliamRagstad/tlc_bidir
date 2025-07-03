@@ -36,8 +36,6 @@ pub enum Term {
     Abstraction(String, Box<Term>, LineInfo),
     Application(Box<Term>, Box<Term>, LineInfo),
     Variable(String, Option<Type>, LineInfo), // Variable with optional type annotation
-    Nat(u32, LineInfo),                       // Natural number
-    Bool(bool, LineInfo),                     // Boolean value
 }
 
 impl Term {
@@ -47,8 +45,6 @@ impl Term {
             Term::Abstraction(_, _, info) => info,
             Term::Application(_, _, info) => info,
             Term::Variable(_, _, info) => info,
-            Term::Nat(_, info) => info,
-            Term::Bool(_, info) => info,
         }
     }
 }
@@ -97,18 +93,10 @@ pub fn parse_prog(input: &str) -> Program {
                 let type_annotation = inner.next().map(parse_type);
                 Term::Variable(var_name, type_annotation, span.into())
             }
-            Rule::no_type_variable => {
+            Rule::untyped_variable => {
                 // Variable without type annotation
                 let var_name = pair.as_str().to_string();
                 Term::Variable(var_name, None, pair.as_span().into())
-            }
-            Rule::nat => {
-                let nat_str = pair.as_str();
-                Term::Nat(nat_str.parse().unwrap(), pair.as_span().into())
-            }
-            Rule::bool => {
-                let bool_str = pair.as_str();
-                Term::Bool(bool_str == "true", pair.as_span().into())
             }
             r => unreachable!("Rule {:?} not expected", r),
         }

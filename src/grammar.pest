@@ -4,17 +4,12 @@ program    = _{ SOI ~ ((assignment | application | term) ~ ";"?)* ~ EOI }
 assignment =  { variable ~ "=" ~ (application | term) }
 
 // Lambda calculus
-term             = _{ abstraction | "(" ~ application ~ ")" | value | no_type_variable | "(" ~ term ~ ")" }
+term             = _{ abstraction | "(" ~ application ~ ")" | untyped_variable | "(" ~ term ~ ")" }
 abstraction      =  { ("\\" | "λ") ~ variable ~ "." ~ term }
 application      =  { term ~ term+ }
-variable         =  { typed_variable | no_type_variable }
-no_type_variable = @{ ASCII_ALPHA+ ~ "'"* }
-typed_variable   = _{ no_type_variable ~ ":" ~ type_expression }
-
-// Values
-value = _{ nat | bool }
-nat   = @{ ASCII_DIGIT+ }
-bool  = @{ "true" | "false" }
+variable         =  { typed_variable | untyped_variable }
+untyped_variable = @{ ASCII_ALPHANUMERIC+ ~ "'"* }
+typed_variable   = _{ untyped_variable ~ ":" ~ type_expression }
 
 // Type annotations
 type_expression = _{ app_type | base_type }
