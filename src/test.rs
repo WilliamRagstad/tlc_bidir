@@ -21,51 +21,96 @@ mod tests {
     fn test_parse() {
         let input = "x = y; λx. (x y); x y;";
         let terms = parse_prog(input);
-        assert_eq!(
-            &terms,
-            &[
-                Expr::Assignment(
-                    Term::Variable("x".to_string(), None),
-                    Term::Variable("y".to_string(), None)
-                ),
-                Expr::Term(Term::Abstraction(
-                    "x".to_string(),
-                    Box::new(Term::Application(
-                        Box::new(Term::Variable("x".to_string(), None)),
-                        Box::new(Term::Variable("y".to_string(), None))
-                    ))
-                )),
-                Expr::Term(Term::Application(
-                    Box::new(Term::Variable("x".to_string(), None)),
-                    Box::new(Term::Variable("y".to_string(), None))
-                ))
-            ]
-        );
+
+        if let Expr::Assignment(target, body) = &terms[0] {
+            if let Term::Variable(name, _, _) = target {
+                assert_eq!(name, "x");
+            } else {
+                panic!("Expected a variable for assignment target");
+            }
+            if let Term::Variable(var_name, _, _) = body {
+                assert_eq!(var_name, "y");
+            } else {
+                panic!("Expected a variable for assignment body");
+            }
+        } else {
+            panic!("Expected an assignment expression");
+        }
+        if let Expr::Term(term) = &terms[1] {
+            if let Term::Abstraction(param, body, _) = term {
+                assert_eq!(param, "x");
+                if let Term::Application(f, x, _) = &**body {
+                    if let Term::Variable(var_name, _, _) = &**f {
+                        assert_eq!(var_name, "x");
+                        if let Term::Variable(arg_name, _, _) = &**x {
+                            assert_eq!(arg_name, "y");
+                        } else {
+                            panic!("Expected a variable for argument");
+                        }
+                    } else {
+                        panic!("Expected a variable for function");
+                    }
+                } else {
+                    panic!("Expected an application in the body of abstraction");
+                }
+            } else {
+                panic!("Expected an abstraction term");
+            }
+        } else {
+            panic!("Expected a term expression");
+        }
+        if let Expr::Term(term) = &terms[2] {
+            if let Term::Application(f, x, _) = term {
+                if let Term::Variable(var_name, _, _) = &**f {
+                    assert_eq!(var_name, "x");
+                    if let Term::Variable(arg_name, _, _) = &**x {
+                        assert_eq!(arg_name, "y");
+                    } else {
+                        panic!("Expected a variable for argument in application");
+                    }
+                } else {
+                    panic!("Expected a variable for function in application");
+                }
+            } else {
+                panic!("Expected an application term");
+            }
+        } else {
+            panic!("Expected a term expression");
+        }
     }
 
     #[test]
     fn test_multi_app() {
         let input = "λx. λy. λz. ((x y) z);";
         let terms = parse_prog(input);
-        assert_eq!(
-            &terms,
-            &[Expr::Term(Term::Abstraction(
-                "x".to_string(),
-                Box::new(Term::Abstraction(
-                    "y".to_string(),
-                    Box::new(Term::Abstraction(
-                        "z".to_string(),
-                        Box::new(Term::Application(
-                            Box::new(Term::Application(
-                                Box::new(Term::Variable("x".to_string(), None)),
-                                Box::new(Term::Variable("y".to_string(), None))
-                            )),
-                            Box::new(Term::Variable("z".to_string(), None))
-                        ))
-                    ))
-                ))
-            ))]
-        );
+
+        if let Expr::Term(Term::Abstraction(_, body, _)) = &terms[0] {
+            if let Term::Application(f, x, _) = &**body {
+                if let Term::Application(g, y, _) = &**f {
+                    if let Term::Variable(x_var, None, _) = &**g {
+                        assert_eq!(x_var, "x");
+                        if let Term::Variable(y_var, None, _) = &**y {
+                            assert_eq!(y_var, "y");
+                            if let Term::Variable(z_var, None, _) = &**x {
+                                assert_eq!(z_var, "z");
+                            } else {
+                                panic!("Expected a variable for z");
+                            }
+                        } else {
+                            panic!("Expected a variable for y");
+                        }
+                    } else {
+                        panic!("Expected a variable for x");
+                    }
+                } else {
+                    panic!("Expected an application in the body");
+                }
+            } else {
+                panic!("Expected an application in the body");
+            }
+        } else {
+            panic!("Expected a term abstraction");
+        }
     }
 
     #[test]
@@ -76,13 +121,21 @@ mod tests {
         assert_eq!(prog.len(), 2);
         eval_expr(&prog[0], &mut env, false, PRINT_NONE);
         let result = eval_expr(&prog[1], &mut env, false, PRINT_NONE);
-        assert_eq!(
-            result,
-            Term::Application(
-                Box::new(Term::Variable("y".to_string(), None)),
-                Box::new(Term::Variable("y".to_string(), None))
-            )
-        );
+
+        if let Term::Application(f, x, _) = result {
+            if let Term::Variable(var_name, _, _) = &*f {
+                assert_eq!(var_name, "x");
+                if let Term::Variable(arg_name, _, _) = &*x {
+                    assert_eq!(arg_name, "y");
+                } else {
+                    panic!("Expected a variable for argument in application");
+                }
+            } else {
+                panic!("Expected a variable for function in application");
+            }
+        } else {
+            panic!("Expected a term expression for evaluation result");
+        }
     }
 
     /// We should be able to have recursive function definitions

@@ -45,24 +45,24 @@ pub fn var(v: &str) -> String {
 /// Pretty print a term
 pub fn term(t: &Term) -> String {
     match t {
-        Term::Abstraction(param, body) => {
+        Term::Abstraction(param, body, _) => {
             let body = term(body);
             format!("{YELLOW}λ{RESET}{}{DARK_GRAY}.{RESET}{}", var(param), body)
         }
-        Term::Application(f, x) => format!(
+        Term::Application(f, x, _) => format!(
             "{DARK_GRAY}({RESET}{} {}{DARK_GRAY}){RESET}",
             term(f),
             term(x)
         ),
-        Term::Variable(v, t) => {
+        Term::Variable(v, t, _) => {
             if let Some(t) = t {
                 format!("{} {DARK_GRAY}:{RESET} {}", var(v), ty(t))
             } else {
                 var(v)
             }
         }
-        Term::Nat(n) => format!("{GREEN}{}{RESET}", n),
-        Term::Bool(b) => format!("{CYAN}{}{RESET}", if *b { "true" } else { "false" }),
+        Term::Nat(n, _) => format!("{GREEN}{}{RESET}", n),
+        Term::Bool(b, _) => format!("{CYAN}{}{RESET}", if *b { "true" } else { "false" }),
     }
 }
 
@@ -80,18 +80,34 @@ pub fn ty(t: &Type) -> String {
 pub fn ty_err(err: TypeError) -> String {
     let type_error = format!("{RED}Type error{RESET}");
     match err {
-        TypeError::Mismatch { expected, found } => {
+        TypeError::Mismatch {
+            expected,
+            found,
+            info,
+        } => {
             format!(
-                "{type_error}: expected {} but found {}",
+                "{type_error}: expected {} but found {} at line {} col {}",
                 ty(&expected),
-                ty(&found)
+                ty(&found),
+                info.0,
+                info.1
             )
         }
-        TypeError::NotAFunction(t) => {
-            format!("{type_error}: {} is not a function type", ty(&t))
+        TypeError::NotAFunction(t, info) => {
+            format!(
+                "{type_error}: {} is not a function type at line {} col {}",
+                ty(&t),
+                info.0,
+                info.1
+            )
         }
-        TypeError::Unbound(name) => {
-            format!("{type_error}: unbound variable `{}`", var(&name))
+        TypeError::Unbound(name, info) => {
+            format!(
+                "{type_error}: unbound variable `{}` at line {} col {}",
+                var(&name),
+                info.0,
+                info.1
+            )
         }
     }
 }

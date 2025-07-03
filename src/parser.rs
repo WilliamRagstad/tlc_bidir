@@ -8,6 +8,16 @@ use pest_derive::Parser;
 #[grammar = "grammar.pest"]
 pub struct LambdaCalcParser;
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct LineInfo(pub usize, pub usize);
+
+impl From<pest::Span<'_>> for LineInfo {
+    fn from(span: pest::Span) -> Self {
+        // Convert Pest span to our LineInfo
+        LineInfo(span.start_pos().line_col().0, span.start_pos().line_col().1)
+    }
+}
+
 /// AST for our extended lambda calculus program
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -23,11 +33,24 @@ pub type Program = Vec<Expr>;
 /// See https://en.wikipedia.org/wiki/Lambda_calculus#Definition.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Term {
-    Abstraction(String, Box<Term>),
-    Application(Box<Term>, Box<Term>),
-    Variable(String, Option<Type>), // Variable with optional type annotation
-    Nat(u32),                       // Natural number
-    Bool(bool),                     // Boolean value
+    Abstraction(String, Box<Term>, LineInfo),
+    Application(Box<Term>, Box<Term>, LineInfo),
+    Variable(String, Option<Type>, LineInfo), // Variable with optional type annotation
+    Nat(u32, LineInfo),                       // Natural number
+    Bool(bool, LineInfo),                     // Boolean value
+}
+
+impl Term {
+    /// Get the line and column information for this term
+    pub fn info(&self) -> &LineInfo {
+        match self {
+            Term::Abstraction(_, _, info) => info,
+            Term::Application(_, _, info) => info,
+            Term::Variable(_, _, info) => info,
+            Term::Nat(_, info) => info,
+            Term::Bool(_, info) => info,
+        }
+    }
 }
 
 /// Type system for lambda calculus
@@ -43,10 +66,11 @@ pub fn parse_prog(input: &str) -> Program {
     fn parse_term(pair: Pair<Rule>) -> Term {
         match pair.as_rule() {
             Rule::abstraction => {
+                let span = pair.as_span();
                 let mut inner = pair.into_inner();
                 let param = inner.next().unwrap().as_str().to_string();
                 let body = parse_term(inner.next().unwrap());
-                Term::Abstraction(param, Box::new(body))
+                Term::Abstraction(param, Box::new(body), span.into())
             }
             // Rule::application => {
             //     let mut inner = pair.into_inner();
@@ -58,26 +82,33 @@ pub fn parse_prog(input: &str) -> Program {
             Rule::application => {
                 // Syntax sugar: (e1 e2 e3 ...) -> (e1 (e2 (e3 ...)))
                 // Previous (e1 e2) was only allowed
+                let span = pair.as_span();
                 let mut inner = pair.into_inner();
                 let mut lhs = parse_term(inner.next().unwrap());
                 for rhs in inner {
-                    lhs = Term::Application(Box::new(lhs), Box::new(parse_term(rhs)));
+                    lhs = Term::Application(Box::new(lhs), Box::new(parse_term(rhs)), span.into());
                 }
                 lhs
             }
             Rule::variable => {
+                let span = pair.as_span();
                 let mut inner = pair.into_inner();
                 let var_name = inner.next().unwrap().as_str().to_string();
                 let type_annotation = inner.next().map(parse_type);
-                Term::Variable(var_name, type_annotation)
+                Term::Variable(var_name, type_annotation, span.into())
+            }
+            Rule::no_type_variable => {
+                // Variable without type annotation
+                let var_name = pair.as_str().to_string();
+                Term::Variable(var_name, None, pair.as_span().into())
             }
             Rule::nat => {
                 let nat_str = pair.as_str();
-                Term::Nat(nat_str.parse().unwrap())
+                Term::Nat(nat_str.parse().unwrap(), pair.as_span().into())
             }
             Rule::bool => {
                 let bool_str = pair.as_str();
-                Term::Bool(bool_str == "true")
+                Term::Bool(bool_str == "true", pair.as_span().into())
             }
             r => unreachable!("Rule {:?} not expected", r),
         }

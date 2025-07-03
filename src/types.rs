@@ -1,14 +1,18 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::parser::{Expr, Program, Term, Type};
+use crate::parser::{Expr, LineInfo, Program, Term, Type};
 
 pub type Ctx = HashMap<String, Rc<Type>>;
 
 #[derive(Debug)]
 pub enum TypeError {
-    Mismatch { expected: Type, found: Type },
-    NotAFunction(Type),
-    Unbound(String),
+    Mismatch {
+        expected: Type,
+        found: Type,
+        info: LineInfo,
+    },
+    NotAFunction(Type, LineInfo),
+    Unbound(String, LineInfo),
 }
 
 pub fn check_program(ctx: &mut Ctx, prog: &Program) -> Result<(), TypeError> {
@@ -23,7 +27,7 @@ pub fn check_expr(ctx: &mut Ctx, expr: &Expr) -> Result<Rc<Type>, TypeError> {
         Expr::Assignment(target, body) => {
             // Infer the body and bind it to the target
             let (target, expected) = match target {
-                Term::Variable(name, expected_ty) => (name, expected_ty),
+                Term::Variable(name, expected_ty, _) => (name, expected_ty),
                 _ => unreachable!("Assignment target must be a variable with type annotation"),
             };
             check_bind(ctx, target, expected, body)
@@ -53,6 +57,7 @@ fn check_bind(
                 Err(TypeError::Mismatch {
                     expected: (*expected_ty).clone(),
                     found: (**existing_ty).clone(),
+                    info: body.info().clone(),
                 })
             } else {
                 Ok(Rc::new(expected_ty.clone()))
@@ -66,6 +71,7 @@ fn check_bind(
                 return Err(TypeError::Mismatch {
                     expected: (*expected_ty).clone(),
                     found: (*inferred).clone(),
+                    info: body.info().clone(),
                 });
             }
             Ok(Rc::new(expected_ty.clone()))
@@ -81,7 +87,7 @@ fn check_bind(
 /// Checking: Γ ⊢ e ⇐ T   (returns () on success)
 pub fn check_term(ctx: &mut Ctx, e: &Term, expected: &Rc<Type>) -> Result<(), TypeError> {
     match (e, expected.as_ref()) {
-        (Term::Abstraction(x, body), Type::Abstraction(param, ret)) => {
+        (Term::Abstraction(x, body, _), Type::Abstraction(param, ret)) => {
             ctx.insert(x.clone(), param.clone());
             let res = check_term(ctx, body, ret);
             ctx.remove(x);
@@ -96,6 +102,7 @@ pub fn check_term(ctx: &mut Ctx, e: &Term, expected: &Rc<Type>) -> Result<(), Ty
                 Err(TypeError::Mismatch {
                     expected: (*expected.as_ref()).clone(),
                     found: (*inferred).clone(),
+                    info: e.info().clone(),
                 })
             }
         }
@@ -105,7 +112,7 @@ pub fn check_term(ctx: &mut Ctx, e: &Term, expected: &Rc<Type>) -> Result<(), Ty
 /// Synthesis: Γ ⊢ e ⇒ T
 fn infer_term(ctx: &mut Ctx, e: &Term) -> Result<Rc<Type>, TypeError> {
     match e {
-        Term::Variable(x, expected) => {
+        Term::Variable(x, expected, _) => {
             if let Some(ex_ty) = expected {
                 // If there's an expected type, we should compare it
                 if let Some(var_ty) = ctx.get(x) {
@@ -113,27 +120,30 @@ fn infer_term(ctx: &mut Ctx, e: &Term) -> Result<Rc<Type>, TypeError> {
                         return Err(TypeError::Mismatch {
                             expected: (*ex_ty).clone(),
                             found: (**var_ty).clone(),
+                            info: e.info().clone(),
                         });
                     }
                 }
             }
-            ctx.get(x).cloned().ok_or(TypeError::Unbound(x.clone()))
+            ctx.get(x)
+                .cloned()
+                .ok_or(TypeError::Unbound(x.clone(), e.info().clone()))
         }
-        Term::Nat(_) => Ok(Rc::new(Type::Variable("Nat".to_string()))),
-        Term::Bool(_) => Ok(Rc::new(Type::Variable("Bool".to_string()))),
-        Term::Abstraction(param, body) => {
+        Term::Nat(_, _) => Ok(Rc::new(Type::Variable("Nat".to_string()))),
+        Term::Bool(_, _) => Ok(Rc::new(Type::Variable("Bool".to_string()))),
+        Term::Abstraction(param, body, _) => {
             let param_ty = Rc::new(Type::Variable(param.to_string()));
             ctx.insert(param.clone(), param_ty.clone());
             let ret_ty = infer_term(ctx, body)?;
             ctx.remove(param);
             Ok(Rc::new(Type::Abstraction(param_ty, ret_ty)))
         }
-        Term::Application(lhs, rhs) => match infer_term(ctx, lhs)?.as_ref() {
+        Term::Application(lhs, rhs, _) => match infer_term(ctx, lhs)?.as_ref() {
             Type::Abstraction(param, ret) => {
                 check_term(ctx, rhs, param)?;
                 Ok(ret.clone())
             }
-            other => Err(TypeError::NotAFunction((*other).clone())),
+            other => Err(TypeError::NotAFunction((*other).clone(), e.info().clone())),
         },
     }
 }
