@@ -93,7 +93,7 @@ fn check_bind(
             Ok(ty)
         }
         Err(TypeError::Unbound(_, _)) if expected.is_some() => {
-            let expected_ty = Rc::new(expected.clone().unwrap());
+            let expected_ty = Rc::new(resolve_type(ctx, expected.as_ref().unwrap()));
             println!(
                 "Variable `{}` is unbound, expected type: {:?}",
                 target, expected
@@ -102,6 +102,16 @@ fn check_bind(
             ctx.insert(target.to_string(), expected_ty.clone());
             check_term(ctx, body, &expected_ty)?;
             Ok(expected_ty)
+        }
+        Err(TypeError::Unbound(_, _)) => {
+            // If the variable is unbound and no expected type, we can infer it
+            let inferred_ty = infer_term(ctx, body)?;
+            println!(
+                "Variable `{}` is unbound, inferred type: {:?}",
+                target, inferred_ty
+            );
+            ctx.insert(target.to_string(), inferred_ty.clone());
+            Ok(inferred_ty)
         }
         Err(err) => Err(err),
     }

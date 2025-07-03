@@ -4,7 +4,7 @@ type Bool = * -> * -> *;
 
 True   : Bool = λtrue.λfalse.true;
 False  : Bool = λtrue.λfalse.false;
-Not    = λa.((a False) True);
+Not    = λa : Bool.((a False) True);
 And    = λa.λb.((a b) False);
 Or     = λa.λb.((a True) b);
 If     = λa.λt.λf.((a t) f);
