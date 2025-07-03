@@ -45,9 +45,13 @@ pub fn var(v: &str) -> String {
 /// Pretty print a term
 pub fn term(t: &Term) -> String {
     match t {
-        Term::Abstraction(param, body, _) => {
+        Term::Abstraction(param, expected, body, _) => {
             let body = term(body);
-            format!("{YELLOW}λ{RESET}{}{DARK_GRAY}.{RESET}{}", var(param), body)
+            format!(
+                "{YELLOW}λ{RESET}{}{DARK_GRAY}.{RESET}{}",
+                typed_var(param, expected),
+                body
+            )
         }
         Term::Application(f, x, _) => format!(
             "{DARK_GRAY}({RESET}{} {}{DARK_GRAY}){RESET}",
@@ -64,17 +68,20 @@ pub fn term(t: &Term) -> String {
     }
 }
 
-pub fn assign(target: &str, ty: &Option<Type>, body: &Term) -> String {
+pub fn typed_var(v: &str, ty: &Option<Type>) -> String {
     if let Some(t) = ty {
-        format!(
-            "{} {DARK_GRAY}:{RESET} {} {DARK_GRAY}={RESET} {}",
-            var(target),
-            r#type(t),
-            term(body),
-        )
+        format!("{} {DARK_GRAY}:{RESET} {}", var(v), r#type(t))
     } else {
-        format!("{} {DARK_GRAY}={RESET} {}", var(target), term(body))
+        var(v)
     }
+}
+
+pub fn assign(target: &str, ty: &Option<Type>, body: &Term) -> String {
+    format!(
+        "{} {DARK_GRAY}={RESET} {}",
+        typed_var(target, ty),
+        term(body)
+    )
 }
 
 pub fn r#type(t: &Type) -> String {

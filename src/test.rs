@@ -34,7 +34,7 @@ mod tests {
             panic!("Expected an assignment expression");
         }
         if let Expr::Term(term) = &terms[1] {
-            if let Term::Abstraction(param, body, _) = term {
+            if let Term::Abstraction(param, _, body, _) = term {
                 assert_eq!(param, "x");
                 if let Term::Application(f, x, _) = &**body {
                     if let Term::Variable(var_name, _, _) = &**f {
@@ -81,7 +81,7 @@ mod tests {
         let input = "λx. λy. λz. ((x y) z);";
         let terms = parse_prog(input);
 
-        if let Expr::Term(Term::Abstraction(_, body, _)) = &terms[0] {
+        if let Expr::Term(Term::Abstraction(_, _, body, _)) = &terms[0] {
             if let Term::Application(f, x, _) = &**body {
                 if let Term::Application(g, y, _) = &**f {
                     if let Term::Variable(x_var, None, _) = &**g {

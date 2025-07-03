@@ -25,22 +25,23 @@ pub fn substitute(term: &Term, var: &str, value: &Term) -> Term {
             info.clone(),
         ),
         // (λx. e)[var := value] = λx. e  (x == var)
-        Term::Abstraction(s, _, _) if s == var => term.clone(), // Bound variable, no substitution needed
+        Term::Abstraction(s, _, _, _) if s == var => term.clone(), // Bound variable, no substitution needed
         // (λx. e)[var := value] = λx. e  (x in free_vars(value))
-        Term::Abstraction(s, body, info) if free_vars(value).contains(s) => {
+        Term::Abstraction(s, ty, body, info) if free_vars(value).contains(s) => {
             // Avoid variable capture collisions by generating a fresh variable name
             let mut s_new = s.clone();
             while free_vars(value).contains(&s_new) {
                 s_new.push('\'');
             }
             let new_body = substitute(&rename_var(body, s, &s_new), var, value);
-            Term::Abstraction(s_new, Box::new(new_body), info.clone())
+            Term::Abstraction(s_new, ty.clone(), Box::new(new_body), info.clone())
         }
         // (λx. e)[var := value] = λx. e[var := value]  (x != var and x not in free_vars(value))
-        Term::Abstraction(s, body, info) => {
+        Term::Abstraction(s, ty, body, info) => {
             // Substitute inside the abstraction's body
             Term::Abstraction(
                 s.clone(),
+                ty.clone(),
                 Box::new(substitute(body, var, value)),
                 info.clone(),
             )
@@ -58,7 +59,7 @@ pub fn substitute(term: &Term, var: &str, value: &Term) -> Term {
 pub fn free_vars(term: &Term) -> HashSet<String> {
     match term {
         // free_vars(λx. e) = free_vars(e) - {x}
-        Term::Abstraction(s, body, _) => {
+        Term::Abstraction(s, _, body, _) => {
             let mut set = free_vars(body);
             set.remove(s);
             set
@@ -81,13 +82,15 @@ pub fn free_vars(term: &Term) -> HashSet<String> {
 // Rename a variable in a term
 pub fn rename_var(term: &Term, old_var: &str, new_var: &str) -> Term {
     match term {
-        Term::Abstraction(s, body, info) if s == old_var => Term::Abstraction(
+        Term::Abstraction(s, ty, body, info) if s == old_var => Term::Abstraction(
             new_var.to_string(),
+            ty.clone(),
             Box::new(rename_var(body, old_var, new_var)),
             info.clone(),
         ),
-        Term::Abstraction(s, body, info) => Term::Abstraction(
+        Term::Abstraction(s, ty, body, info) => Term::Abstraction(
             s.clone(),
+            ty.clone(),
             Box::new(rename_var(body, old_var, new_var)),
             info.clone(),
         ),
@@ -107,10 +110,11 @@ pub fn rename_var(term: &Term, old_var: &str, new_var: &str) -> Term {
 // Perform β-reduction on a lambda calculus term
 pub fn beta_reduce(term: &Term, env: &Env, mut bound_vars: HashSet<String>) -> Term {
     match term {
-        Term::Abstraction(var, body, info) => {
+        Term::Abstraction(var, ty, body, info) => {
             bound_vars.insert(var.clone());
             Term::Abstraction(
                 var.clone(),
+                ty.clone(),
                 Box::new(beta_reduce(body, env, bound_vars)),
                 info.clone(),
             )
@@ -126,7 +130,7 @@ pub fn beta_reduce(term: &Term, env: &Env, mut bound_vars: HashSet<String>) -> T
             } else {
                 *e1.clone()
             };
-            if let Term::Abstraction(var, body, _) = e1.borrow() {
+            if let Term::Abstraction(var, _, body, _) = e1.borrow() {
                 substitute(body, var, e2)
             } else {
                 Term::Application(
@@ -179,8 +183,9 @@ pub fn env_var(var: &str, ty: &Option<Type>, env: &Env, info: &LineInfo) -> Term
 /// Inline variables in a term using the given environment
 pub fn inline_vars(term: &Term, env: &Env) -> Term {
     match &term {
-        Term::Abstraction(param, body, info) => Term::Abstraction(
+        Term::Abstraction(param, ty, body, info) => Term::Abstraction(
             param.clone(),
+            ty.clone(),
             Box::new(inline_vars(body, env)),
             info.clone(),
         ),

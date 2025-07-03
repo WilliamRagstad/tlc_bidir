@@ -120,7 +120,7 @@ fn check_bind(
 /// Checking: Γ ⊢ e ⇐ T   (returns () on success)
 pub fn check_term(ctx: &mut Ctx, e: &Term, expected: &Rc<Type>) -> Result<(), TypeError> {
     match (e, expected.as_ref()) {
-        (Term::Abstraction(x, body, _), Type::Abstraction(param, ret)) => {
+        (Term::Abstraction(x, _, body, _), Type::Abstraction(param, ret)) => {
             ctx.insert(x.clone(), param.clone());
             let res = check_term(ctx, body, ret);
             ctx.remove(x);
@@ -172,9 +172,10 @@ fn infer_term(ctx: &mut Ctx, e: &Term) -> Result<Rc<Type>, TypeError> {
             // ctx.get(x)
             //     .cloned()
             //     .ok_or(TypeError::Unbound(x.clone(), e.info().clone()))
+            println!("Inferring variable: {}, expected: {:?}", x, expected);
             infer_var(ctx, x, expected, e.info())
         }
-        Term::Abstraction(param, body, _) => {
+        Term::Abstraction(param, _, body, _) => {
             let param_ty = Rc::new(Type::Variable(param.to_string()));
             ctx.insert(param.clone(), param_ty.clone());
             let ret_ty = infer_term(ctx, body)?;

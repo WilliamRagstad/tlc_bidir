@@ -34,7 +34,7 @@ pub type Program = Vec<Expr>;
 /// See https://en.wikipedia.org/wiki/Lambda_calculus#Definition.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Term {
-    Abstraction(String, Box<Term>, LineInfo),
+    Abstraction(String, Option<Type>, Box<Term>, LineInfo),
     Application(Box<Term>, Box<Term>, LineInfo),
     Variable(String, Option<Type>, LineInfo), // Variable with optional type annotation
 }
@@ -43,7 +43,7 @@ impl Term {
     /// Get the line and column information for this term
     pub fn info(&self) -> &LineInfo {
         match self {
-            Term::Abstraction(_, _, info) => info,
+            Term::Abstraction(_, _, _, info) => info,
             Term::Application(_, _, info) => info,
             Term::Variable(_, _, info) => info,
         }
@@ -66,9 +66,24 @@ pub fn parse_prog(input: &str) -> Program {
             Rule::abstraction => {
                 let span = pair.as_span();
                 let mut inner = pair.into_inner();
-                let param = inner.next().unwrap().as_str().to_string();
+                // let param = inner.next().unwrap().as_str().to_string();
+                let (param, expected) = match inner.next().unwrap() {
+                    // Parse variable with optional type annotation
+                    pair if pair.as_rule() == Rule::variable => {
+                        let mut inner_var = pair.into_inner();
+                        let var_name = inner_var.next().unwrap().as_str().to_string();
+                        let type_annotation = inner_var.next().map(parse_type);
+                        (var_name, type_annotation)
+                    }
+                    // Parse untyped variable
+                    pair if pair.as_rule() == Rule::untyped_variable => {
+                        let var_name = pair.as_str().to_string();
+                        (var_name, None)
+                    }
+                    _ => unreachable!("Expected variable or untyped variable"),
+                };
                 let body = parse_term(inner.next().unwrap());
-                Term::Abstraction(param, Box::new(body), span.into())
+                Term::Abstraction(param, expected, Box::new(body), span.into())
             }
             // Rule::application => {
             //     let mut inner = pair.into_inner();
