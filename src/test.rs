@@ -11,7 +11,8 @@ mod tests {
     impl Expr {
         fn term(&self) -> &Term {
             match self {
-                Expr::Assignment(_, term) => term,
+                Expr::Assignment(_, _, term) => term,
+                Expr::TypeDef(_, _) => panic!("Type definitions should not be used as terms"),
                 Expr::Term(term) => term,
             }
         }
@@ -22,12 +23,8 @@ mod tests {
         let input = "x = y; λx. (x y); x y;";
         let terms = parse_prog(input);
 
-        if let Expr::Assignment(target, body) = &terms[0] {
-            if let Term::Variable(name, _, _) = target {
-                assert_eq!(name, "x");
-            } else {
-                panic!("Expected a variable for assignment target");
-            }
+        if let Expr::Assignment(target, _, body) = &terms[0] {
+            assert_eq!(target, "x");
             if let Term::Variable(var_name, _, _) = body {
                 assert_eq!(var_name, "y");
             } else {

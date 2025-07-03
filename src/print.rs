@@ -56,7 +56,7 @@ pub fn term(t: &Term) -> String {
         ),
         Term::Variable(v, t, _) => {
             if let Some(t) = t {
-                format!("{} {DARK_GRAY}:{RESET} {}", var(v), ty(t))
+                format!("{} {DARK_GRAY}:{RESET} {}", var(v), r#type(t))
             } else {
                 var(v)
             }
@@ -64,14 +64,24 @@ pub fn term(t: &Term) -> String {
     }
 }
 
-pub fn assign(target: &Term, body: &Term) -> String {
-    format!("{} = {}{DARK_GRAY};{RESET}", term(target), term(body))
+pub fn assign(target: &str, ty: &Option<Type>, body: &Term) -> String {
+    if let Some(t) = ty {
+        format!(
+            "{} {DARK_GRAY}:{RESET} {} {DARK_GRAY}={RESET} {}",
+            var(target),
+            r#type(t),
+            term(body),
+        )
+    } else {
+        format!("{} {DARK_GRAY}={RESET} {}", var(target), term(body))
+    }
 }
 
-pub fn ty(t: &Type) -> String {
+pub fn r#type(t: &Type) -> String {
     match t {
+        Type::Any => format!("{CYAN}*{RESET}"),
         Type::Variable(name) => format!("{PURPLE}{}{RESET}", name),
-        Type::Abstraction(t1, t2) => format!("{} {DARK_GRAY}->{RESET} {}", ty(t1), ty(t2)),
+        Type::Abstraction(t1, t2) => format!("{} {DARK_GRAY}->{RESET} {}", r#type(t1), r#type(t2)),
     }
 }
 
@@ -85,8 +95,8 @@ pub fn ty_err(err: TypeError) -> String {
         } => {
             format!(
                 "{type_error}: expected {} but found {} at line {} col {}",
-                ty(&expected),
-                ty(&found),
+                r#type(&expected),
+                r#type(&found),
                 info.0,
                 info.1
             )
@@ -94,7 +104,7 @@ pub fn ty_err(err: TypeError) -> String {
         TypeError::NotAFunction(t, info) => {
             format!(
                 "{type_error}: {} is not a function type at line {} col {}",
-                ty(&t),
+                r#type(&t),
                 info.0,
                 info.1
             )
@@ -116,7 +126,7 @@ pub fn ctx(ctx: &crate::types::Ctx) -> String {
         ctx_str.push_str(&format!(
             "  {} {DARK_GRAY}:{RESET} {}{DARK_GRAY},{RESET}\n",
             var(name),
-            ty(t)
+            r#type(t)
         ));
     }
     ctx_str.push('}');

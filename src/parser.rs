@@ -21,7 +21,8 @@ impl From<pest::Span<'_>> for LineInfo {
 /// AST for our extended lambda calculus program
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    Assignment(Term, Term),
+    Assignment(String, Option<Type>, Term),
+    TypeDef(String, Type),
     Term(Term),
 }
 
@@ -52,6 +53,7 @@ impl Term {
 /// Type system for lambda calculus
 #[derive(Debug, Clone, PartialEq)]
 pub enum Type {
+    Any,              // Any type (used for untyped variables)
     Variable(String), // Type variable
     Abstraction(Rc<Type>, Rc<Type>),
 }
@@ -104,7 +106,10 @@ pub fn parse_prog(input: &str) -> Program {
 
     fn parse_type(pair: Pair<Rule>) -> Type {
         match pair.as_rule() {
-            Rule::base_type => Type::Variable(pair.as_str().to_string()),
+            Rule::base_type => match pair.as_str() {
+                "*" => Type::Any, // Represents any type
+                name => Type::Variable(name.to_string()),
+            },
             Rule::app_type => {
                 let mut inner = pair.into_inner();
                 let base = parse_type(inner.next().unwrap());
@@ -129,8 +134,18 @@ pub fn parse_prog(input: &str) -> Program {
             Rule::assignment => {
                 let mut inner = pair.into_inner();
                 let name = parse_term(inner.next().unwrap());
+                let (name, expected) = match name {
+                    Term::Variable(name, expected, _) => (name, expected),
+                    _ => unreachable!("Assignment target must be a variable with type annotation"),
+                };
                 let term = parse_term(inner.next().unwrap());
-                prog.push(Expr::Assignment(name, term));
+                prog.push(Expr::Assignment(name, expected, term));
+            }
+            Rule::type_def => {
+                let mut inner = pair.into_inner();
+                let name = inner.next().unwrap().as_str().to_string();
+                let type_annotation = parse_type(inner.next().unwrap());
+                prog.push(Expr::TypeDef(name, type_annotation));
             }
             // Parse a lambda calculus term
             _ => prog.push(Expr::Term(parse_term(pair))),

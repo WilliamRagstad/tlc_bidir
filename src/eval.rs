@@ -195,18 +195,17 @@ pub fn inline_vars(term: &Term, env: &Env) -> Term {
 
 pub fn eval_expr(expr: &Expr, env: &mut Env, verbose: bool, printer: PrinterFn) -> Term {
     match expr {
-        Expr::Assignment(name, val) => {
+        Expr::Assignment(name, ty, val) => {
             if verbose {
-                printer(print::assign(name, val));
+                printer(print::assign(name, ty, val));
             }
-            let name = match name {
-                Term::Variable(v, _, _) => v.clone(),
-                _ => panic!("Assignment target must be a variable"),
-            };
             // Explicitly DON'T apply beta reduction here!
             // We want recursive combinators to not be evaluated until they are used
-            env.insert(name, val.clone());
+            env.insert(name.clone(), val.clone());
             val.clone()
+        }
+        Expr::TypeDef(_, _) => {
+            unreachable!("Type definitions should not be evaluated, only used for type checking")
         }
         Expr::Term(term) => {
             let term = inline_vars(term, env);
@@ -220,12 +219,12 @@ pub fn eval_expr(expr: &Expr, env: &mut Env, verbose: bool, printer: PrinterFn) 
 
 /// Run the given input program in the given environment
 pub fn eval_prog(input: String, env: &mut Env, verbose: bool, printer: PrinterFn) {
-    let terms: Program = parse_prog(input.replace("\r", "").trim());
+    let mut terms: Program = parse_prog(input.replace("\r", "").trim());
     if terms.is_empty() {
         return;
     }
     let mut ctx = Ctx::new();
-    if let Err(err) = types::check_program(&mut ctx, &terms) {
+    if let Err(err) = types::check_program(&mut ctx, &mut terms) {
         printer(print::ty_err(err));
         return;
     }
@@ -234,7 +233,7 @@ pub fn eval_prog(input: String, env: &mut Env, verbose: bool, printer: PrinterFn
     }
     for (i, expr) in terms.iter().enumerate() {
         let term = eval_expr(expr, env, verbose, printer);
-        if matches!(expr, Expr::Assignment(_, _)) {
+        if matches!(expr, Expr::Assignment(_, _, _)) {
             continue;
         }
         if verbose {

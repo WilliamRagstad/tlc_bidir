@@ -1,7 +1,9 @@
 -- Data Types
 
-True   = λtrue.λfalse.true;
-False  = λtrue.λfalse.false;
+type Bool = * -> * -> *;
+
+True   : Bool = λtrue.λfalse.true;
+False  : Bool = λtrue.λfalse.false;
 Not    = λa.((a False) True);
 And    = λa.λb.((a b) False);
 Or     = λa.λb.((a True) b);

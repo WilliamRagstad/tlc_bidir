@@ -1,7 +1,8 @@
 WHITESPACE = _{ " " | "\t" | "\n" }
 COMMENT    = _{ "--" ~ (!"\n" ~ ANY)* ~ "\n" }
-program    = _{ SOI ~ ((assignment | application | term) ~ ";"?)* ~ EOI }
+program    = _{ SOI ~ ((type_def | assignment | application | term) ~ ";"?)* ~ EOI }
 assignment =  { variable ~ "=" ~ (application | term) }
+type_def   =  { "type" ~ untyped_variable ~ "=" ~ type_expression ~ ";"? }
 
 // Lambda calculus
 term             = _{ abstraction | "(" ~ application ~ ")" | untyped_variable | "(" ~ term ~ ")" }
@@ -14,4 +15,4 @@ typed_variable   = _{ untyped_variable ~ ":" ~ type_expression }
 // Type annotations
 type_expression = _{ app_type | base_type }
 app_type        =  { base_type ~ "->" ~ type_expression }
-base_type       = @{ ASCII_ALPHA+ }
+base_type       =  { ASCII_ALPHA+ | "*" | "(" ~ type_expression ~ ")" }
