@@ -32,7 +32,7 @@ pub fn check_expr(ctx: &mut Ctx, expr: &Expr) -> Result<Rc<Type>, TypeError> {
         }
         Expr::TypeDef(target, ty) => {
             // Insert the type definition into the context
-            println!("Inserting type definition: {} = {:?}", target, ty);
+            println!("Inserting type definition: {} = {}", target, ty);
             ctx.insert(target.clone(), Rc::new(ty.clone()));
             Ok(Rc::new(ty.clone()))
         }
@@ -95,8 +95,9 @@ fn check_bind(
         Err(TypeError::Unbound(_, _)) if expected.is_some() => {
             let expected_ty = Rc::new(resolve_type(ctx, expected.as_ref().unwrap()));
             println!(
-                "Variable `{}` is unbound, expected type: {:?}",
-                target, expected
+                "Variable `{}` is unbound, expected type: {}",
+                target,
+                expected.clone().unwrap_or_default()
             );
             // If the variable is unbound but we have an expected type, we can insert it
             ctx.insert(target.to_string(), expected_ty.clone());
@@ -107,7 +108,7 @@ fn check_bind(
             // If the variable is unbound and no expected type, we can infer it
             let inferred_ty = infer_term(ctx, body)?;
             println!(
-                "Variable `{}` is unbound, inferred type: {:?}",
+                "Variable `{}` is unbound, inferred type: {}",
                 target, inferred_ty
             );
             ctx.insert(target.to_string(), inferred_ty.clone());
@@ -119,6 +120,7 @@ fn check_bind(
 
 /// Checking: Γ ⊢ e ⇐ T   (returns () on success)
 pub fn check_term(ctx: &mut Ctx, e: &Term, expected: &Rc<Type>) -> Result<(), TypeError> {
+    println!("Checking term: {}, expected: {}", e, expected);
     match (e, expected.as_ref()) {
         (Term::Abstraction(x, _, body, _), Type::Abstraction(param, ret)) => {
             ctx.insert(x.clone(), param.clone());
@@ -172,7 +174,11 @@ fn infer_term(ctx: &mut Ctx, e: &Term) -> Result<Rc<Type>, TypeError> {
             // ctx.get(x)
             //     .cloned()
             //     .ok_or(TypeError::Unbound(x.clone(), e.info().clone()))
-            println!("Inferring variable: {}, expected: {:?}", x, expected);
+            println!(
+                "Inferring variable: {}, expected: {}",
+                x,
+                expected.clone().unwrap_or_default()
+            );
             infer_var(ctx, x, expected, e.info())
         }
         Term::Abstraction(param, _, body, _) => {
