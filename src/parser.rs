@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{fmt::Display, rc::Rc};
 
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
@@ -50,12 +50,51 @@ impl Term {
     }
 }
 
+impl Display for Term {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Term::Abstraction(param, expected, term, _) => {
+                write!(
+                    f,
+                    "λ{}: {}. {}",
+                    param,
+                    expected.clone().unwrap_or_default(),
+                    term
+                )
+            }
+            Term::Application(term1, term2, _) => {
+                write!(f, "({} {})", term1, term2)
+            }
+            Term::Variable(name, expected, _) => {
+                if let Some(expected) = expected {
+                    write!(f, "{}: {}", name, expected)
+                } else {
+                    write!(f, "{}", name)
+                }
+            }
+        }
+    }
+}
+
 /// Type system for lambda calculus
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum Type {
-    Any,              // Any type (used for untyped variables)
+    #[default]
+    Any, // Any type (used for untyped variables)
     Variable(String), // Type variable
     Abstraction(Rc<Type>, Rc<Type>),
+}
+
+impl Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Type::Any => write!(f, "*"),
+            Type::Variable(name) => write!(f, "{}", name),
+            Type::Abstraction(param, ret) => {
+                write!(f, "({} -> {})", param, ret)
+            }
+        }
+    }
 }
 
 /// Parse a top-level program into a list of terms
