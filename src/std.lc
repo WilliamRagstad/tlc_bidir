@@ -1,30 +1,35 @@
--- Data Types
+-- Booleans
 
 type Bool = * -> * -> *;
 
-True   : Bool = λtrue.λfalse.true;
-False  : Bool = λtrue.λfalse.false;
-Not    = λa : Bool.((a False) True);
-And    = λa.λb.((a b) False);
-Or     = λa.λb.((a True) b);
-If     = λa.λt.λf.((a t) f);
-0      = λf.λx.x;
-1      = λf.λx.(f x);
-2      = λf.λx.(f (f x));
-3      = λf.λx.(f (f (f x)));
-4      = λf.λx.(f (f (f (f x))));
-5      = λf.λx.(f (f (f (f (f x)))));
-Succ   = λn.λf.λx.(f ((n f) x));
-Add    = λm.λn.λf.λx.((m f) ((n f) x));
-Mul    = λm.λn.λf.λx.((m (n f)) x);
-IsZero = λn.((n λx.False) True);
-Eq     = λm.λn.((And (IsZero ((Add m) n))) (IsZero ((Add n) m)));
+True    : Bool                    = λtrue.λfalse.true;
+False   : Bool                    = λtrue.λfalse.false;
+Not     : Bool -> Bool            = λa.((a False) True);
+And     : Bool -> Bool -> Bool    = λa.λb.((a b) False);
+Or      : Bool -> Bool -> Bool    = λa.λb.((a True) b);
+If      : Bool -> * -> * -> *     = λa.λt.λf.((a t) f);
 
- 6 = Succ 5;   7 = Succ 6;   8 = Succ 7;   9 = Succ 8;  10 = Succ 9;
-11 = Succ 10; 12 = Succ 11; 13 = Succ 12; 14 = Succ 13; 15 = Succ 14;
-16 = Succ 15; 17 = Succ 16; 18 = Succ 17; 19 = Succ 18; 20 = Succ 19;
-21 = Succ 20; 22 = Succ 21; 23 = Succ 22; 24 = Succ 23; 25 = Succ 24;
-26 = Succ 25; 27 = Succ 26; 28 = Succ 27; 29 = Succ 28; 30 = Succ 29;
+-- Natural Numbers
+
+type Nat = (* -> *) -> * -> *;
+
+0       : Nat                     = λf.λx.x;
+1       : Nat                     = λf.λx.(f x);
+2       : Nat                     = λf.λx.(f (f x));
+3       : Nat                     = λf.λx.(f (f (f x)));
+4       : Nat                     = λf.λx.(f (f (f (f x))));
+5       : Nat                     = λf.λx.(f (f (f (f (f x)))));
+Succ    : Nat -> Nat              = λn.λf.λx.(f ((n f) x));
+Add     : Nat -> Nat -> Nat       = λm.λn.λf.λx.((m f) ((n f) x));
+Mul     : Nat -> Nat -> Nat       = λm.λn.λf.λx.((m (n f)) x);
+IsZero  : Nat -> Nat              = λn.((n λx.False) True);
+Eq      : Nat -> Nat -> Bool      = λm.λn.((And (IsZero ((Add m) n))) (IsZero ((Add n) m)));
+
+ 6 : Nat = Succ 5 ;  7 : Nat = Succ 6 ;  8 : Nat = Succ 7 ;  9 : Nat = Succ 8 ; 10 : Nat = Succ 9 ;
+11 : Nat = Succ 10; 12 : Nat = Succ 11; 13 : Nat = Succ 12; 14 : Nat = Succ 13; 15 : Nat = Succ 14;
+16 : Nat = Succ 15; 17 : Nat = Succ 16; 18 : Nat = Succ 17; 19 : Nat = Succ 18; 20 : Nat = Succ 19;
+21 : Nat = Succ 20; 22 : Nat = Succ 21; 23 : Nat = Succ 22; 24 : Nat = Succ 23; 25 : Nat = Succ 24;
+26 : Nat = Succ 25; 27 : Nat = Succ 26; 28 : Nat = Succ 27; 29 : Nat = Succ 28; 30 : Nat = Succ 29;
 
 -- Data Structures
 
